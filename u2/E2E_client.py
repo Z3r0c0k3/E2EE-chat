@@ -103,24 +103,27 @@ def start_client():
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     ).decode()
 
-    request = {"id": user_id, "password": password, "action": action, "public_key": pem_public_key}
+    request = {"status": "success", "id": user_id, "password": password, "action": action, "public_key": pem_public_key}
     client.send(json.dumps(request).encode('utf-8'))
 
     response = json.loads(client.recv(1024).decode('utf-8'))
     if response["status"] in ["success", "registration_success"]:
         print(f"{action.capitalize()} successful!")
         if action == "login":
-            threading.Thread(target=receive_messages, args=(client, private_key), daemon=True).start()
-
             target_user = input("Enter the ID of the user you want to message: ")
             target_public_key = request_public_key(client, target_user)
+
             if target_public_key:
+                threading.Thread(target=receive_messages, args=(client, private_key), daemon=True).start()
+
                 while True:
                     message = input("Write your message: ")
                     if message == "/exit":
                         break
                     encrypted_message = encrypt_message(target_public_key, message)
-                    client.send(json.dumps({"target": target_user, "message": encrypted_message}).encode('utf-8'))
+                    client.send(json.dumps({"action":"send_message", "target": target_user, "message": encrypted_message}).encode('utf-8'))
+            else:
+                print(f"Could not retrieve public key for {target_user}.")
     else:
         print(f"{action.capitalize()} failed: {response['status']}")
 

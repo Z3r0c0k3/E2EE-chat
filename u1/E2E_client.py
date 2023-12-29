@@ -110,17 +110,20 @@ def start_client():
     if response["status"] in ["success", "registration_success"]:
         print(f"{action.capitalize()} successful!")
         if action == "login":
-            threading.Thread(target=receive_messages, args=(client, private_key), daemon=True).start()
-
             target_user = input("Enter the ID of the user you want to message: ")
             target_public_key = request_public_key(client, target_user)
+
             if target_public_key:
+                threading.Thread(target=receive_messages, args=(client, private_key), daemon=True).start()
+
                 while True:
                     message = input("Write your message: ")
                     if message == "/exit":
                         break
                     encrypted_message = encrypt_message(target_public_key, message)
-                    client.send(json.dumps({"target": target_user, "message": encrypted_message}).encode('utf-8'))
+                    client.send(json.dumps({"action":"send_message", "target": target_user, "message": encrypted_message}).encode('utf-8'))
+            else:
+                print(f"Could not retrieve public key for {target_user}.")
     else:
         print(f"{action.capitalize()} failed: {response['status']}")
 
