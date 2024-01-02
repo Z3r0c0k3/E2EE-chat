@@ -60,22 +60,18 @@ def decrypt_message(private_key, encrypted_message):
     )
     return decrypted.decode()
 
+def real_data(client_socket, private_key):
+        message_data = json.loads(client_socket.recv(1024).decode('utf-8'))
+        encrypted_message = message_data.get("message")
+        if encrypted_message == "Message sent":
+            real_data(client_socket, private_key)
+        else:
+            decrypted_message = decrypt_message(private_key, encrypted_message)
+            print(f"\nMessage from {message_data['from']}: {decrypted_message}\nWrite your message: ", end='')
+
 def receive_messages(client_socket, private_key):
     while True:
-        try:
-            message_data = json.loads(client_socket.recv(1024).decode('utf-8'))
-            encrypted_message = message_data.get("message")
-            if encrypted_message is not None:
-                decrypted_message = decrypt_message(private_key, encrypted_message)
-                print(f"\nMessage from {message_data['from']}: {decrypted_message}\nWrite your message: ", end='')
-            else:
-                print("\nReceived an invalid message.")
-            sys.stdout.flush()
-        except ConnectionResetError:
-            break
-        except json.JSONDecodeError:
-            print("\nReceived an invalid JSON format.")
-            break
+        real_data(client_socket, private_key)
 
 def request_public_key(client, target_user):
     client.send(json.dumps({"action": "get_public_key", "target_user": target_user}).encode('utf-8'))
